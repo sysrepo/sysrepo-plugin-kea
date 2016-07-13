@@ -1,0 +1,58 @@
+module: ietf-kea-dhcpv6
+   +--rw server
+      +--rw serv-attributes
+      |  +--rw name?                 string
+      |  +--rw duid?                 duidtype
+      |  +--rw enable?               boolean
+      |  +--rw interfaces-config*    string
+      |  +--rw description?          string
+      |  +--rw stateless-service?    boolean
+      |  +--rw renew-time?           yang:timeticks
+      |  +--rw rebind-time?          yang:timeticks
+      |  +--rw preferred-lifetime?   yang:timeticks
+      |  +--rw valid-lifetime?       yang:timeticks
+      +--rw custom-options
+      |  +--rw custon-option* [option-code]
+      |     +--rw option-code    uint16
+      |     +--rw option-name?   string
+      |     +--rw option-type?   string
+      +--rw option-sets
+      |  +--rw option-set* [option-set-id]
+      |     +--rw option-set-id      uint8
+      |     +--rw description?       string
+      |     +--rw standard-option* [option-code]
+      |        +--rw option-code     uint16
+      |        +--rw option-name?    string
+      |        +--rw option-value?   string
+      |        +--rw csv-format?     boolean
+      +--rw network-ranges
+      |  +--rw option-set-id?   uint8
+      |  +--rw rapid-commit?    boolean
+      |  +--rw network-range* [network-range-id]
+      |     +--rw network-range-id       uint8
+      |     +--rw network-description?   string
+      |     +--rw network-prefix?        inet:ipv6-prefix
+      |     +--rw option-set-id?         uint8
+      |     +--rw rapid-commit?          boolean
+      |     +--rw interface?             string
+      |     +--rw interface-id?          string
+      |     +--rw relay-address?         inet:ipv6-address
+      |     +--rw address-pools
+      |     |  +--rw address-pool* [pool-id]
+      |     |     +--rw pool-id          uint8
+      |     |     +--rw pool-prefix?     inet:ipv6-prefix
+      |     |     +--rw start-address?   inet:ipv6-address
+      |     |     +--rw end-address?     inet:ipv6-address
+      |     +--rw prefix-pools
+      |     |  +--rw prefix-pool* [pool-id]
+      |     |     +--rw pool-id        uint8
+      |     |     +--rw pool-prefix?   inet:ipv6-prefix
+      |     +--rw reserved-host* [cli-id]
+      |        +--rw cli-id           uint32
+      |        +--rw duid?            duidtype
+      |        +--rw hardware-addr?   yang:mac-address
+      |        +--rw reserv-addr*     inet:ipv6-address
+      +--rw rsoo-enabled-options
+         +--rw rsoo-enabled-option* [option-code]
+            +--rw option-code    uint16
+            +--rw description?   string
