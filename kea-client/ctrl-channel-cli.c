@@ -6,13 +6,52 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+/// Attempts to load a file into buffer and wrap it with
+/// set-config JSON syntax.
+/// @return 0 on failure, 1 on success
+int loadConfig(char* buf, size_t buflen, const char* filename) {
+
+    const char* COMMAND_PREFIX =
+        "{\n"
+        "    \"command\": \"set-config\",\n"
+        "    \"arguments\": \n";
+    const char* COMMAND_SUFFIX =
+        "    \n"
+        "}\n";
+
+    FILE* f = NULL;
+    f = fopen(filename, "r");
+    if (!f) {
+        printf("Failed to open file %s\n", filename);
+        return (0);
+    }
+
+    sprintf(buf, "%s", COMMAND_PREFIX);
+    size_t offset = strlen(buf);
+
+    size_t len = fread(buf + offset, sizeof(char), buflen - offset, f);
+
+    fclose(f);
+
+    sprintf(buf + strlen(buf), "%s", COMMAND_SUFFIX);
+
+    return (1);
+};
+
 int main(int argc, const char* argv[]) {
-    if (argc != 2) {
-        printf("Usage: %s socket_path\n", argv[0]);
+    if (argc < 2) {
+        printf("Usage: %s socket_path [config-file]\n", argv[0]);
+        printf("socket_path is mandatory\n");
+        printf("If optional config-file is specified, its content is sent to Kea\n");
+        printf("If not, list-commands command is sent that will ask Kea to list\n");
+        printf("all supported commands.\n");
         return (1);
     }
+
     // Create UNIX stream socket.
     int socket_fd;
     if ((socket_fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
@@ -31,11 +70,22 @@ int main(int argc, const char* argv[]) {
         perror("Failed to connect");
         return (1);
     }
-    // Send a command to list all available commands.
-    char buf[1024];
+    // Prepare input buffer.
+    char buf[10240];
     memset(buf, 0, sizeof(buf));
 
-    sprintf(buf, "{ \"command\": \"list-commands\" }");
+    if (argc == 3) {
+        if (!loadConfig(buf, sizeof(buf), argv[2])) {
+            printf("Failed to load specified config file: %s", argv[2]);
+            return (1);
+        }
+    } else {
+        // Send a command to list all available commands.
+        sprintf(buf, "{ \"command\": \"list-commands\" }");
+    }
+
+    printf("Buffer to be sent: %s\n", buf);
+
     int bytes_sent = send(socket_fd, buf, strlen(buf), 0);
     printf("%d bytes sent\n", bytes_sent);
 
