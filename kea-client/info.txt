@@ -1,0 +1,5 @@
+This is a sample client that connects to the command channel.
+It sends list-commands command.
+
+For list of all commands and syntax used, see Section 8.12 and 15
+of the Kea User's Guide: http://kea.isc.org/docs/kea-guide.html
