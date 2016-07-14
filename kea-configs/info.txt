@@ -1,0 +1,10 @@
+This directory contains sample Kea configurations.
+
+Note that Kea uses extended JSON for its configuration (i.e. JSON with allowed
+bash-style comments. Lines starting with # are ignored). Many more examples
+are available in kea sources in doc/examples/kea6 and doc/examples/kea4.
+
+The examples are ordered in roughly increasing complexity.
+
+
+

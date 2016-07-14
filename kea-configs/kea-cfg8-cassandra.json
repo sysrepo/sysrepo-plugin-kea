@@ -1,0 +1,51 @@
+# This is an example configuration file for DHCPv6 server in Kea.
+#
+# It has the following features enabled:
+# - command channel
+# - one IPv6 subnet with one dynamic pool range.
+# - configured to listen on eth1 interface
+# - configured to use Cassandra CQL database
+# - basic logging
+
+{ "Dhcp6":
+
+{
+  "interfaces-config": {
+    "interfaces": [ "eth1" ]
+  },
+
+  "lease-database": {
+      "type": "cql",
+      "keyspace": "keatest",
+      "contact_points": "192.0.2.1,192.0.2.2,192.0.2.3"
+  },
+
+  "preferred-lifetime": 3000,
+  "valid-lifetime": 4000,
+  "renew-timer": 1000,
+  "rebind-timer": 2000,
+
+  "subnet6": [
+    {
+      "pools": [ { "pool": "2001:db8:1::/80" } ],
+      "subnet": "2001:db8:1::/64"
+    }
+  ]
+},
+
+"Logging": {
+    "loggers": [
+        {
+            "name": "kea-dhcp6",
+            "output_options": [
+                {
+                    "output": "/var/log/kea-debug.log"
+                }
+            ],
+            "debuglevel": 0,
+            "severity": "INFO"
+        }
+    ]
+}
+
+}
