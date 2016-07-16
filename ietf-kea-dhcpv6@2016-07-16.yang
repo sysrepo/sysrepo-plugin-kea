@@ -60,6 +60,14 @@ module ietf-kea-dhcpv6 {
                 type boolean;
                 description "whether to enable the server";
             }
+	    container lease-database {
+	    	leaf type {
+		    type string;
+		    description "defines database type. Supported
+		    		values are: memfile, mysql, pgsql,
+				cassandra";
+		}
+	    }
 	    container control-socket {
                 leaf socket-type {
 		     type string;
@@ -98,18 +106,17 @@ module ietf-kea-dhcpv6 {
                 the server support client-server exchanges 
                 involving two messages defined in ([RFC3315]).";
             }
-            leaf renew-time {
+            leaf renew-timer {
                 type yang:timeticks;
-                description "renew time";
+                description "renew time in seconds";
             }
-            leaf rebind-time {
+            leaf rebind-timer {
                 type yang:timeticks;
-                description "rebind time";
+                description "rebind time in seconds";
             }
             leaf preferred-lifetime {
                 type yang:timeticks;
-                description "preferred lifetime 
-                for IA";
+                description "preferred lifetime IA in seconds";
             }
             leaf valid-lifetime {
                 type yang:timeticks;
@@ -186,8 +193,8 @@ module ietf-kea-dhcpv6 {
                 description "whether rapid commit is enabled 
                 gloablly";
             }
-            list network-range {
-                key network-range-id;
+            list subnet6 {
+                key subnet;
                 description "A subnet of DHCPv6 server";
                 leaf network-range-id {
                     type uint8;
@@ -197,7 +204,7 @@ module ietf-kea-dhcpv6 {
                     type string;
                     description "description for the subnet";
                 }
-                leaf network-prefix {
+                leaf subnet {
                     type inet:ipv6-prefix;
                     description "the subnet prefix";
                 }
@@ -225,7 +232,7 @@ module ietf-kea-dhcpv6 {
                     description "specify which relay will be 
                     used";
                 }
-                container address-pools {
+                container pools {
                     description "address pools for this subnet";
                     list address-pool {
                         key pool-id;
