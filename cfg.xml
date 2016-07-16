@@ -1,0 +1,15 @@
+<server xmlns="urn:ietf:params:xml:ns:yang:ietf-kea-dhcpv6">
+  <serv-attributes>
+    <control-socket>
+      <socket-type>unix</socket-type>
+      <socket-name>/tmp/</socket-name>
+    </control-socket>
+    <interfaces-config>
+      <interfaces>eth0</interfaces>
+    </interfaces-config>
+    <renew-timer>1000</renew-timer>
+    <rebind-timer>2000</rebind-timer>
+    <preferred-lifetime>3500</preferred-lifetime>
+    <valid-lifetime>4000</valid-lifetime>
+  </serv-attributes>
+</server>
