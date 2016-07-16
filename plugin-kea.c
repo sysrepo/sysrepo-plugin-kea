@@ -21,7 +21,26 @@
 
 #include <stdio.h>
 #include <syslog.h>
+#include <string.h>
 #include "sysrepo.h"
+
+int kea_ctrl_channel_connect() {
+    return SR_ERR_OK;
+}
+
+int kea_ctrl_channel_close() {
+    return SR_ERR_OK;
+}
+
+int kea_ctrl_send(const char* json) {
+    if (!json || !strlen(json)) {
+	printf("Must provide non-empty configuration");
+	return SR_ERR_INVAL_ARG;
+    }
+    printf("STUB: sending configuration: [%s]\n",
+	   json);
+    return SR_ERR_OK;
+}
 
 /* logging macro for unformatted messages */
 #define log_msg(MSG) \
@@ -81,9 +100,12 @@ retrieve_current_config(sr_session_ctx_t *session)
     size_t count = 0;
     int rc = SR_ERR_OK;
 
-    log_msg("current turing-machine configuration:");
+    log_msg("current plugin-kea configuration:");
 
-    rc = sr_get_items(session, "/turing-machine:turing-machine/transition-function//*", &values, &count);
+    /* Going through all of the nodes */
+    log_msg("control-socket parameters:\n");
+    sr_session_refresh(session);
+    rc = sr_get_items(session, "/ietf-kea-dhcpv6:server//*", &values, &count);
     if (SR_ERR_OK != rc) {
         printf("Error by sr_get_items: %s", sr_strerror(rc));
         return;
@@ -97,30 +119,8 @@ retrieve_current_config(sr_session_ctx_t *session)
 static int
 module_change_cb(sr_session_ctx_t *session, const char *module_name, sr_notif_event_t event, void *private_ctx)
 {
-    log_msg("turing-machine configuration has changed");
+    log_msg("plugin-kea configuration has changed");
     retrieve_current_config(session);
-
-    return SR_ERR_OK;
-}
-
-static int
-rpc_initialize_cb(const char *xpath, const sr_val_t *input, const size_t input_cnt,
-        sr_val_t **output, size_t *output_cnt, void *private_ctx)
-{
-    log_msg("turing-machine 'initialize' RPC called");
-
-    if (input_cnt > 0) {
-        log_fmt("turing-machine tape content: %s", input[0].data.string_val);
-    }
-
-    return SR_ERR_OK;
-}
-
-static int
-rpc_run_cb(const char *xpath, const sr_val_t *input, const size_t input_cnt,
-        sr_val_t **output, size_t *output_cnt, void *private_ctx)
-{
-    log_msg("turing-machine 'run' RPC called");
 
     return SR_ERR_OK;
 }
@@ -131,25 +131,15 @@ sr_plugin_init_cb(sr_session_ctx_t *session, void **private_ctx)
     sr_subscription_ctx_t *subscription = NULL;
     int rc = SR_ERR_OK;
 
-    rc = sr_module_change_subscribe(session, "turing-machine", module_change_cb, NULL,
-            0, SR_SUBSCR_DEFAULT, &subscription);
+    //rc = sr_module_change_subscribe(session, "ietf-kea-dhcpv6", module_change_cb, NULL,
+    //				    0, SR_SUBSCR_DEFAULT, &subscription);
+    rc = sr_subtree_change_subscribe(session, "/ietf-kea-dhcpv6:server/*", module_change_cb, NULL,
+				    0, SR_SUBSCR_DEFAULT, &subscription);
     if (SR_ERR_OK != rc) {
         goto error;
     }
 
-    rc = sr_rpc_subscribe(session, "/turing-machine:initialize", rpc_initialize_cb, NULL,
-            SR_SUBSCR_CTX_REUSE, &subscription);
-    if (SR_ERR_OK != rc) {
-        goto error;
-    }
-
-    rc = sr_rpc_subscribe(session, "/turing-machine:run", rpc_run_cb, NULL,
-            SR_SUBSCR_CTX_REUSE, &subscription);
-    if (SR_ERR_OK != rc) {
-        goto error;
-    }
-
-    log_msg("turing-machine plugin initialized successfully");
+    log_msg("plugin-kea initialized successfully");
 
     retrieve_current_config(session);
 
@@ -159,7 +149,7 @@ sr_plugin_init_cb(sr_session_ctx_t *session, void **private_ctx)
     return SR_ERR_OK;
 
 error:
-    log_fmt("turing-machine plugin initialization failed: %s", sr_strerror(rc));
+    log_fmt("plugin-kea initialization failed: %s", sr_strerror(rc));
     sr_unsubscribe(session, subscription);
     return rc;
 }
@@ -170,5 +160,6 @@ sr_plugin_cleanup_cb(sr_session_ctx_t *session, void *private_ctx)
     /* subscription was set as our private context */
     sr_unsubscribe(session, private_ctx);
 
-    log_msg("turing-machine plugin cleanup finished");
+    log_msg("pluging-kea plugin cleanup finished");
 }
+
