@@ -40,6 +40,9 @@ If the configuration changes, the plugin should be notified.
 The callback should get the new configuration and send it
 to Kea.
 
+11. Export current model configuration to a file:
+sysrepocfg --export=/tmp/backup.json --format=json --datastore=startup  ietf-kea-dhcpv6
+
 
 
 ---------------------
