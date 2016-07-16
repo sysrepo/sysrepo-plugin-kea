@@ -67,6 +67,7 @@ module ietf-kea-dhcpv6 {
 		    		values are: memfile, mysql, pgsql,
 				cassandra";
 		}
+		description "Defines database connection";
 	    }
 	    container control-socket {
                 leaf socket-type {
@@ -80,7 +81,7 @@ module ietf-kea-dhcpv6 {
 		     description "Specifies location of the
 		     unix socket Kea uses to receive commands";
 		}
-
+		description "Defines control API socket";
             }
             container interfaces-config {
                 description "A leaf list to denote which one or 
