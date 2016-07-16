@@ -6,7 +6,7 @@
 
 int main(int argc, char **argv) {
 
-   int rc = SR_ERR_OK; 
+   int rc = SR_ERR_OK;
    sr_conn_ctx_t *conn = NULL;
    sr_session_ctx_t *sess = NULL;
    sr_val_t val =  {0};
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
    rc = sr_session_start(conn, SR_DS_STARTUP, SR_SESS_DEFAULT, &sess);
    CHECK_RC(rc, cleanup);
-   
+
    /* socket type */
    val.xpath = "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/socket-type";
    val.type = SR_STRING_T;
@@ -36,9 +36,19 @@ int main(int argc, char **argv) {
    CHECK_RC(rc, cleanup);
 
    rc = sr_commit(sess);
+
+
+   /* retrieve field */
+   sr_val_t* val2 = 0;
+
+   rc = sr_get_item(sess, val.xpath, &val2);
+   printf("Retrieved: [%s]\n", val.data.string_val);
+
+   sr_free_val(val2);
+
    CHECK_RC(rc, cleanup);
-   
-cleanup:   
+
+cleanup:
    sr_session_stop(sess);
    sr_disconnect(conn);
 }
