@@ -1,0 +1,61 @@
+How to run sysrepo-kea plugin:
+
+
+1. Install sysrepo
+
+
+2. Build sysrepo-plugin-kea
+mkdir build
+cmake ..
+make
+
+3. Copy plugin-kea.ko to /usr/local/lib/sysrepo/plugins
+cp ~/devel/sysrepo-plugin-kea/build/libplugin-kea.so /usr/local/lib/sysrepo/plugins
+
+4. List all yang modules
+sysrepoctl -l
+
+5. Install Kea YANG module into the sysrepo 
+sysrepoctl --install --yang=ietf-kea-dhcpv6@2016-07-16.yang
+
+6. Verify it's actually installed
+sysrepoctl -l
+
+7. Set the configuration, either manually or using basic_config
+basic_config is a tool that sets first two leafs in the model.
+./basic_config
+
+8. Start sysrepo daemon
+sysrepo -l 4 -d
+
+9. Start sysrepo-plugind - daemon that loads plugins from /usr/local/lib/sysrepo/plugins
+sysrepo-plugind -l 4 -d (make sure it prints that the plugin-kea is loaded)
+The callback installed with sr_module_change_subscribe should be called.
+This call back should apply configuration to Kea.
+
+10. Configuration can be inspected and edited with with:
+sysrepocfg --editor=emacs --datastore=running ietf-kea-dhcpv6
+
+If the configuration changes, the plugin should be notified.
+The callback should get the new configuration and send it
+to Kea.
+
+
+
+---------------------
+
+
+Yang Explorer - GUI tool for browsing and editing YANG.
+
+
+
+
+sysrepocfg -e vi --datastore=startup ietf-kea-dhcpv6
+
+
+
+
+
+/usr/local/lib/sysrepo/plugins
+
+
