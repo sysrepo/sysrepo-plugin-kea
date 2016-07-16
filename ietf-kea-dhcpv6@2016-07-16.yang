@@ -60,6 +60,20 @@ module ietf-kea-dhcpv6 {
                 type boolean;
                 description "whether to enable the server";
             }
+	    container control-socket {
+                leaf socket-type {
+		     type string;
+		     /* @todo: change this to enum */
+		     description "Type of control socket used
+		     to send commands to Kea";
+		}
+		leaf socket-name {
+		     type string;
+		     description "Specifies location of the
+		     unix socket Kea uses to receive commands";
+		}
+
+            }
             container interfaces-config {
                 description "A leaf list to denote which one or 
                 more interfaces the server should listen on. The 
