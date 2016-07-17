@@ -4,9 +4,10 @@ cmake_minimum_required(VERSION 2.8)
 include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
-# turing-machine plugin
+# plugin-kea
 add_library(plugin-kea SHARED plugin-kea.cc)
 target_link_libraries(plugin-kea sysrepo)
+set(CMAKE_C_FLAGS "-g -O0")
 
 add_executable(basic_config basic_config.c)
 target_link_libraries(basic_config sysrepo)
