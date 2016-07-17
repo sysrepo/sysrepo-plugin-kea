@@ -1,0 +1,26 @@
+<server xmlns="urn:ietf:params:xml:ns:yang:ietf-kea-dhcpv6">
+  <serv-attributes>
+    <control-socket>
+      <socket-type>unix</socket-type>
+      <socket-name>/tmp/kea-control-channel</socket-name>
+    </control-socket>
+    <renew-timer>1000</renew-timer>
+    <rebind-timer>2000</rebind-timer>
+    <preferred-lifetime>3000</preferred-lifetime>
+    <valid-lifetime>4000</valid-lifetime>
+    <interfaces-config>
+      <interfaces>enp0s8</interfaces>
+    </interfaces-config>
+  </serv-attributes>
+  <network-ranges>
+    <subnet6>
+      <subnet>2001:db8::/48</subnet>
+      <pools>
+        <address-pool>
+          <pool-id>1</pool-id>
+          <pool-prefix>2001:db8:bad:c0de::/64</pool-prefix>
+        </address-pool>
+      </pools>
+    </subnet6>
+  </network-ranges>
+</server>
