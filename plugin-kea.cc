@@ -1,22 +1,14 @@
 /**
- * @file turing-machine.c
- * @author Rastislav Szabo <raszabo@cisco.com>, Lukas Macko <lmacko@cisco.com>
- * @brief Example plugin for sysrepo datastore - turing machine.
+ * @file plugin-kea.cc
+ * @author Tomek Mrugalski, Marcin Siodelski
+ * @brief plugin for sysrepo datastore for ISC Kea
  *
  * @copyright
- * Copyright 2016 Cisco Systems, Inc.
+ * Copyright (C) 2011-2016 Internet Systems Consortium, Inc. ("ISC")
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
 #include <cstdio>
@@ -30,13 +22,11 @@
 extern "C" {
 #include "sysrepo.h"
 
-int kea_ctrl_channel_connect() {
-    return SR_ERR_OK;
-}
-
-int kea_ctrl_channel_close() {
-    return SR_ERR_OK;
-}
+    using namespace std;
+    
+    const string KEA_CONTROL_SOCKET = "/tmp/kea-control-channel";
+    const string KEA_CONTROL_CLIENT = "~/devel/sysrepo-plugin-kea/kea-client/ctrl-client-cli";
+    const string CFG_TEMP_FILE = "/tmp/kea-plugin-gen-cfg.json";
 
 int kea_ctrl_send(const char* json) {
     if (!json || !strlen(json)) {
@@ -279,13 +269,15 @@ retrieve_current_config(sr_session_ctx_t *session)
     s << "}" << std::endl << "}" << std::endl;
 
     std::ofstream fs;
-    fs.open("/tmp/kea-plugin-gen-cfg.json", std::ofstream::out);
+    fs.open(CFG_TEMP_FILE.c_str(), std::ofstream::out);
     fs << s.str();
     fs.close();
 
-    system ("/home/thomson/devel/sysrepo-plugin-kea/kea-client/ctrl-channel-cli /tmp/kea-control-channel /tmp/kea-plugin-gen-cfg.json");
+    string cmd = KEA_CONTROL_CLIENT + " " + KEA_CONTROL_SOCKET + " " + CFG_TEMP_FILE;
+    
+    system (cmd.c_str());
 
-    remove("/tmp/kea-plugin-gen-cfg.json");
+    remove(CFG_TEMP_FILE.c_str());
 
     std::cout << s.str() << std::endl;
 
@@ -293,7 +285,8 @@ retrieve_current_config(sr_session_ctx_t *session)
 }
 
 static int
-module_change_cb(sr_session_ctx_t *session, const char *module_name, sr_notif_event_t event, void *private_ctx)
+module_change_cb(sr_session_ctx_t *session, const char *module_name, sr_notif_event_t event,
+                 void *private_ctx)
 {
     log_msg("plugin-kea configuration has changed");
     retrieve_current_config(session);
