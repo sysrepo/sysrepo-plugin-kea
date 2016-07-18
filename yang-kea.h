@@ -9,7 +9,10 @@
 #ifndef YANG_KEA_H
 #define YANG_KEA_H
 
+extern "C" {
 #include "sysrepo.h"
+};
+
 #include <string>
 
 /// @brief convenient funtion that generates spaces for specified

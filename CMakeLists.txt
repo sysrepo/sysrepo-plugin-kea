@@ -9,6 +9,9 @@ add_library(plugin-kea SHARED plugin-kea.cc yang-kea.cc yang-kea.h)
 target_link_libraries(plugin-kea sysrepo)
 set(CMAKE_C_FLAGS "-g -O0")
 
+add_executable(get_config get_config.cc yang-kea.cc yang-kea.h)
+target_link_libraries(get_config sysrepo)
+
 add_executable(basic_config basic_config.c)
 target_link_libraries(basic_config sysrepo)
 # plugins should be installed into ${PLUGINS_DIR}
