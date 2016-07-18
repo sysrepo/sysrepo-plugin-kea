@@ -223,56 +223,57 @@ SysrepoKea::getConfig(sr_session_ctx_t * session) {
 
     std::ostringstream s;
 
-    s << "{ \"Dhcp6\": {";
+    s << "{" << endl << "\"Dhcp6\": {" << endl;
 
     rc = sr_get_items(session, "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/*", &values, &count);
     if (rc == SR_ERR_OK) {
-        s << "\"control-socket\": {";
+        s << tabs(1) << "\"control-socket\": {" << endl;
         for (size_t i = 0; i < count; ++i) {
             if (std::string(values[i].xpath) == "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/socket-type") {
-                s << "\"socket-type\": \"" << values[i].data.string_val << "\",";
+                s << tabs(2) << "\"socket-type\": \"" << values[i].data.string_val << "\"," << endl;
             }
             if (std::string(values[i].xpath) == "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/socket-name") {
-                s << "\"socket-name\": \"" << values[i].data.string_val << "\"";
+                s << tabs(2) << "\"socket-name\": \"" << values[i].data.string_val << "\"" << endl;
             }
         }
-        s << "},";
+        s << tabs(1) << "}," << endl;
         sr_free_values(values, count);
     }
 
+    /// @todo: There may be multiple interfaces specified, need to iterate through all of them, not just pick first.
     sr_val_t* value = NULL;
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/interfaces-config/interfaces", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"interfaces-config\": { " << std::endl;;
-        s << "\"interfaces\": [ \"" << std::endl;;
-        s << value->data.string_val << std::endl;
-        s << "\" ]" << std::endl;
-        s <<  "}," << std::endl;;
+        s << tabs(1) << "\"interfaces-config\": { " << std::endl;;
+        s << tabs(2) << "\"interfaces\": [ \"" << std::endl;;
+        s << tabs(2) << value->data.string_val << std::endl;
+        s << tabs(2) << "\" ]" << std::endl;
+        s << tabs(1) << "}," << std::endl;;
         sr_free_values(value, 1);
 
     }
 
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/renew-timer", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"renew-timer\":" << value->data.uint32_val << "," << std::endl;
+        s << tabs(1) << "\"renew-timer\":" << value->data.uint32_val << "," << std::endl;
         sr_free_values(value, 1);
     }
 
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/rebind-timer", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"rebind-timer\":" << value->data.uint32_val << "," << std::endl;;
+        s << tabs(1) << "\"rebind-timer\":" << value->data.uint32_val << "," << std::endl;;
         sr_free_values(value, 1);
     }
 
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/preferred-lifetime", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"preferred-lifetime\":" << value->data.uint32_val << "," << std::endl;;
+        s << tabs(1) << "\"preferred-lifetime\":" << value->data.uint32_val << "," << std::endl;;
         sr_free_values(value, 1);
     }
 
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/valid-lifetime", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"valid-lifetime\":" << value->data.uint32_val << ", " << std::endl;;
+        s << tabs(1) << "\"valid-lifetime\":" << value->data.uint32_val << ", " << std::endl;;
         sr_free_values(value, 1);
     }
 
