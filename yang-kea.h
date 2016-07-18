@@ -12,6 +12,16 @@
 #include "sysrepo.h"
 #include <string>
 
+/// @brief convenient funtion that generates spaces for specified
+///        indentation level
+///
+/// For example for 1 it generates string("    "), for 2
+/// it is string("        ") and so on.
+///
+/// @param int identation level
+///
+/// @return a string with appropriate number of spaces.
+std::string tabs(int level);
 
 class SysrepoKea {
 public:
@@ -28,9 +38,22 @@ public:
     /// @param type should the type be printed?
     ///
     /// @return string representing the value
-    std::string
+    static std::string
     valueToText(sr_val_t *value, bool xpath = false,
                 bool type = false);
+
+    std::string
+    getConfig(sr_session_ctx_t* session);
+
+private:
+    std::string
+    get_pool(sr_session_ctx_t* session, const char *xpath,int indent);
+
+    std::string
+    get_subnet(sr_session_ctx_t* session, const char *xpath, int indent);
+
+    std::string
+    get_pools(sr_session_ctx_t* session, const char *xpath, int indent);
 };
 
 #endif /* YANG_KEA_H */
