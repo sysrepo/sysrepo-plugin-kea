@@ -59,8 +59,7 @@
           
           "pools": [ { "pool": "2001:db8:bad:c0de::/64" } ]
       } ]
-  }
-},
+  },
 
 "Logging": {
     "loggers": [
