@@ -21,7 +21,7 @@ sysrepoctl --install --yang=ietf-kea-dhcpv6@2016-07-16.yang
 6. Verify it's actually installed
 sysrepoctl -l
 
-7. Set the configuration, either manually or using basic_config
+7. Set the configuration, either manually (as shown in step 10) or using basic_config
 basic_config is a tool that sets first two leafs in the model.
 ./basic_config
 

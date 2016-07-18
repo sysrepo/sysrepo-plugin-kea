@@ -40,11 +40,11 @@ int kea_ctrl_channel_close() {
 
 int kea_ctrl_send(const char* json) {
     if (!json || !strlen(json)) {
-	printf("Must provide non-empty configuration");
-	return SR_ERR_INVAL_ARG;
+        printf("Must provide non-empty configuration");
+        return SR_ERR_INVAL_ARG;
     }
     printf("STUB: sending configuration: [%s]\n",
-	   json);
+           json);
     return SR_ERR_OK;
 }
 
@@ -61,6 +61,8 @@ int kea_ctrl_send(const char* json) {
         fprintf(stderr, MSG "\n", __VA_ARGS__); \
         syslog(LOG_INFO, MSG, __VA_ARGS__); \
     } while(0)
+
+    using namespace std;
 
 /* prints one value retrieved from sysrepo */
 static void
@@ -97,6 +99,86 @@ print_value(sr_val_t *value)
             log_fmt("%s (unprintable)", value->xpath);
     }
 }
+
+    string
+get_pool(sr_session_ctx_t* session, const char *xpath) {
+    stringstream tmp;
+    int rc = SR_ERR_OK;
+    sr_val_t* value = NULL;
+
+    cout << "Retrieving data for pool " << xpath << endl;
+
+    string name = string(xpath) + "/pool-prefix";
+
+    rc = sr_get_item(session, name.c_str(), &value);
+    if (rc == SR_ERR_OK) {
+        tmp << "                { \"pool\": \"" << value->data.string_val << "\" }" << endl;
+        sr_free_values(value, 1);
+    }
+
+    return tmp.str();
+}
+
+string
+get_pools(sr_session_ctx_t* session, const char *xpath) {
+    stringstream tmp;
+    int rc = SR_ERR_OK;
+    sr_val_t* pools;
+    size_t pools_cnt = 32;
+
+
+    string name = string(xpath) + "/pools/*";
+    cout << "Retrieving pools for subnet " << xpath << ", xpath=" << name << endl;
+
+    rc = sr_get_items(session, name.c_str(), &pools, &pools_cnt);
+    if (rc == SR_ERR_OK) {
+        cout << "Retrieved " << pools_cnt << " pools." << endl;
+
+        tmp << "            \"pools\": [ " << endl;
+
+        for (int i = 0; i < pools_cnt; i++) {
+            if (i) {
+                tmp << ",";
+            }
+            tmp << get_pool(session, pools[i].xpath);
+        }
+
+        tmp << "            ]" << endl;
+        sr_free_values(pools, pools_cnt);
+
+    }
+
+    cout << "#### get_pools=" << tmp.str() << endl;
+
+    return tmp.str();
+}
+
+
+string
+get_subnet(sr_session_ctx_t* session, const char *xpath) {
+    stringstream tmp;
+    int rc = SR_ERR_OK;
+    sr_val_t* value = NULL;
+
+    cout << "Retrieving data for subnet " << xpath << endl;
+
+    string name = string(xpath) + "/subnet";
+
+    tmp << "        { " << endl;
+
+    rc = sr_get_item(session, name.c_str(), &value);
+    if (rc == SR_ERR_OK) {
+        tmp << "        \"subnet\": \"" << value->data.string_val << "\"," << endl;
+
+        sr_free_values(value, 1);
+    }
+
+    tmp << get_pools(session, xpath);
+    tmp << "        }" << endl;
+
+    return tmp.str();
+}
+
 
 /* retrieves & prints current turing-machine configuration */
 static void
@@ -158,20 +240,40 @@ retrieve_current_config(sr_session_ctx_t *session)
 
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/rebind-timer", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"rebind-timer\":" << value->data.uint32_val << "," << std::endl;; 
+        s << "\"rebind-timer\":" << value->data.uint32_val << "," << std::endl;;
         sr_free_values(value, 1);
     }
 
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/preferred-lifetime", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"preferred-lifetime\":" << value->data.uint32_val << "," << std::endl;; 
+        s << "\"preferred-lifetime\":" << value->data.uint32_val << "," << std::endl;;
         sr_free_values(value, 1);
     }
 
     rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/valid-lifetime", &value);
     if (rc == SR_ERR_OK) {
-        s << "\"valid-lifetime\":" << value->data.uint32_val << "" << std::endl;; 
+        s << "\"valid-lifetime\":" << value->data.uint32_val << ", " << std::endl;;
         sr_free_values(value, 1);
+    }
+
+    sr_val_t* subnets;
+    size_t subnets_cnt = 32;
+    rc = sr_get_items(session, "/ietf-kea-dhcpv6:server/network-ranges/subnet6",
+                      &subnets, &subnets_cnt);
+    if (rc == SR_ERR_OK) {
+        cout << "#### Received " << subnets_cnt << " subnet[s]" << endl;
+        s << "    \"subnet6\": [" << endl;
+        for (int i = 0; i < subnets_cnt; i++) {
+
+            if (i) {
+                s << "," << endl;
+            }
+            string subnet_txt = get_subnet(session, subnets[i].xpath);
+            s << subnet_txt;
+        }
+        s << "    ]" << endl;
+
+        sr_free_values(subnets, subnets_cnt);
     }
 
     s << "}" << std::endl << "}" << std::endl;
@@ -181,7 +283,7 @@ retrieve_current_config(sr_session_ctx_t *session)
     fs << s.str();
     fs.close();
 
-    system ("/Users/marcin/devel/sysrepo-plugin-kea/kea-client/ctrl-channel-cli /tmp/kea-control-channel /tmp/kea-plugin-gen-cfg.json");
+    system ("/home/thomson/devel/sysrepo-plugin-kea/kea-client/ctrl-channel-cli /tmp/kea-control-channel /tmp/kea-plugin-gen-cfg.json");
 
     remove("/tmp/kea-plugin-gen-cfg.json");
 
@@ -206,9 +308,9 @@ sr_plugin_init_cb(sr_session_ctx_t *session, void **private_ctx)
     int rc = SR_ERR_OK;
 
     //rc = sr_module_change_subscribe(session, "ietf-kea-dhcpv6", module_change_cb, NULL,
-    //				    0, SR_SUBSCR_DEFAULT, &subscription);
+    //                              0, SR_SUBSCR_DEFAULT, &subscription);
     rc = sr_subtree_change_subscribe(session, "/ietf-kea-dhcpv6:server/*", module_change_cb, NULL,
-				    0, SR_SUBSCR_DEFAULT, &subscription);
+                                    0, SR_SUBSCR_DEFAULT, &subscription);
     if (SR_ERR_OK != rc) {
         goto error;
     }
