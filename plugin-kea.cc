@@ -23,20 +23,10 @@ extern "C" {
 #include "sysrepo.h"
 
     using namespace std;
-    
+
     const string KEA_CONTROL_SOCKET = "/tmp/kea-control-channel";
     const string KEA_CONTROL_CLIENT = "~/devel/sysrepo-plugin-kea/kea-client/ctrl-client-cli";
     const string CFG_TEMP_FILE = "/tmp/kea-plugin-gen-cfg.json";
-
-int kea_ctrl_send(const char* json) {
-    if (!json || !strlen(json)) {
-        printf("Must provide non-empty configuration");
-        return SR_ERR_INVAL_ARG;
-    }
-    printf("STUB: sending configuration: [%s]\n",
-           json);
-    return SR_ERR_OK;
-}
 
 /* logging macro for unformatted messages */
 #define log_msg(MSG) \
@@ -54,10 +44,76 @@ int kea_ctrl_send(const char* json) {
 
     using namespace std;
 
-/* prints one value retrieved from sysrepo */
-static void
-print_value(sr_val_t *value)
+/// @brief converts sr_type_t to textual form
+///
+/// @param type type to be converted
+/// @return printable representation of the type
+std::string srTypeToText(sr_type_t type)
 {
+    typedef struct {
+        sr_type_t type;
+        const std::string name;
+    } sr_types_text;
+
+    sr_types_text names[] = {
+    /* special types that does not contain any data */
+        { SR_UNKNOWN_T, "SR_UNKNOWN_T" },     /**< Element unknown to sysrepo (unsupported element). */
+        { SR_LIST_T, "SR_LIST_T" },           /**< List instance. ([RFC 6020 sec 7.8](http://tools.ietf.org/html/rfc6020#section-7.8)) */
+        { SR_CONTAINER_T, "SR_CONTAINER_T" }, /**< Non-presence container. ([RFC 6020 sec 7.5](http://tools.ietf.org/html/rfc6020#section-7.5)) */
+        { SR_CONTAINER_PRESENCE_T, "SR_CONTAINER_PRESENCE_T" }, /**< Presence container. ([RFC 6020 sec 7.5.1](http://tools.ietf.org/html/rfc6020#section-7.5.1)) */
+        { SR_LEAF_EMPTY_T, "SR_LEAF_EMPTY_T" },           /**< A leaf that does not hold any value ([RFC 6020 sec 9.11](http://tools.ietf.org/html/rfc6020#section-9.11)) */
+        { SR_UNION_T, "SR_UNION_T" },                /**< Choice of member types ([RFC 6020 sec 9.12](http://tools.ietf.org/html/rfc6020#section-9.12)) */
+
+    /* types containing some data */
+        { SR_BINARY_T, "SR_BINARY_T" },   /**< Base64-encoded binary data ([RFC 6020 sec 9.8](http://tools.ietf.org/html/rfc6020#section-9.8)) */
+        { SR_BITS_T, "SR_BITS_T" },        /**< A set of bits or flags ([RFC 6020 sec 9.7](http://tools.ietf.org/html/rfc6020#section-9.7)) */
+        { SR_BOOL_T, "SR_BOOL_T" },         /**< A boolean value ([RFC 6020 sec 9.5](http://tools.ietf.org/html/rfc6020#section-9.5)) */
+        { SR_DECIMAL64_T, "SR_DECIMAL64_T" },    /**< 64-bit signed decimal number ([RFC 6020 sec 9.3](http://tools.ietf.org/html/rfc6020#section-9.3)) */
+        { SR_ENUM_T, "SR_ENUM_T" },         /**< A string from enumerated strings list ([RFC 6020 sec 9.6](http://tools.ietf.org/html/rfc6020#section-9.6)) */
+        { SR_IDENTITYREF_T, "SR_IDENTITYREF_T" },  /**< A reference to an abstract identity ([RFC 6020 sec 9.10](http://tools.ietf.org/html/rfc6020#section-9.10)) */
+        { SR_INSTANCEID_T, "SR_INSTANCEID_T" },  /**< References a data tree node ([RFC 6020 sec 9.13](http://tools.ietf.org/html/rfc6020#section-9.13)) */
+        { SR_INT8_T, "SR_INT8_T" },         /**< 8-bit signed integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+        { SR_INT16_T, "SR_INT16_T" },        /**< 16-bit signed integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+        { SR_INT32_T, "SR_INT32_T" },       /**< 32-bit signed integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+        { SR_INT64_T, "SR_INT64_T" },        /**< 64-bit signed integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+        { SR_STRING_T, "SR_STRING_T" },       /**< Human-readable string ([RFC 6020 sec 9.4](http://tools.ietf.org/html/rfc6020#section-9.4)) */
+        { SR_UINT8_T, "SR_UINT8_T" },        /**< 8-bit unsigned integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+        { SR_UINT16_T, "SR_UINT16_T" },       /**< 16-bit unsigned integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+        { SR_UINT32_T, "SR_UINT32_T" },       /**< 32-bit unsigned integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+        { SR_UINT64_T, "SR_UINT64_T" }       /**< 64-bit unsigned integer ([RFC 6020 sec 9.2](http://tools.ietf.org/html/rfc6020#section-9.2)) */
+    };
+
+    for (int i = 0; i < sizeof(names)/sizeof(names[0]); i++) {
+        if (names[i].type == type) {
+            return (names[i].name);
+        }
+    }
+
+    return "unknown";
+}
+
+/// @brief Converts sysrepo value into a string representation.
+///
+/// @param value pointer to the sr_var_t object to be represented
+/// @param xpath should the xpath information be printed?
+/// @param type should the type be printed?
+///
+/// @return string representing the value
+std::string
+valueToText(sr_val_t *value, bool xpath = false, bool type = false)
+{
+    stringstream tmp;
+
+    if (xpath) {
+        tmp << value->xpath;
+    }
+    if (type) {
+        tmp << ",type=" << srTypeToText(value->type) << ":";
+    }
+
+    if (xpath || type) {
+        tmp <<  ":";
+    }
     switch (value->type) {
         case SR_CONTAINER_T:
         case SR_CONTAINER_PRESENCE_T:
@@ -65,44 +121,56 @@ print_value(sr_val_t *value)
             /* do not print */
             break;
         case SR_STRING_T:
-            log_fmt("%s = '%s'", value->xpath, value->data.string_val);
+            tmp << value->data.string_val;
             break;
         case SR_BOOL_T:
-            log_fmt("%s = %s", value->xpath, value->data.bool_val ? "true" : "false");
+            tmp << value->data.bool_val ? "true" : "false";
             break;
         case SR_UINT8_T:
-            log_fmt("%s = %u", value->xpath, value->data.uint8_val);
+            // Converted to uint16, because otherwise it will be printed as
+            // a single character.
+            tmp << static_cast<uint16_t>(value->xpath, value->data.uint8_val);
             break;
         case SR_UINT16_T:
-            log_fmt("%s = %u", value->xpath, value->data.uint16_val);
+            tmp << static_cast<uint16_t>(value->xpath, value->data.uint16_val);
             break;
         case SR_UINT32_T:
-            log_fmt("%s = %u", value->xpath, value->data.uint32_val);
+            tmp << static_cast<uint32_t>(value->xpath, value->data.uint16_val);
             break;
         case SR_IDENTITYREF_T:
-            log_fmt("%s = %s", value->xpath, value->data.identityref_val);
+            tmp << value->data.identityref_val;
             break;
         case SR_ENUM_T:
-            log_fmt("%s = %s", value->xpath, value->data.enum_val);
+            tmp << value->data.enum_val;
             break;
         default:
             log_fmt("%s (unprintable)", value->xpath);
     }
+
+    return (tmp.str());
 }
 
-    string
-get_pool(sr_session_ctx_t* session, const char *xpath) {
+std::string
+tabs(int level) {
+    stringstream tmp;
+    const std::string indent("    ");
+    for (int i=0; i < level; i++) {
+        tmp << indent;
+    }
+    return (tmp.str());
+}
+
+string
+get_pool(sr_session_ctx_t* session, const char *xpath, int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* value = NULL;
-
-    cout << "Retrieving data for pool " << xpath << endl;
 
     string name = string(xpath) + "/pool-prefix";
 
     rc = sr_get_item(session, name.c_str(), &value);
     if (rc == SR_ERR_OK) {
-        tmp << "                { \"pool\": \"" << value->data.string_val << "\" }" << endl;
+        tmp << tabs(indent) << "{ \"pool\": \"" << value->data.string_val << "\" }" << endl;
         sr_free_values(value, 1);
     }
 
@@ -110,12 +178,11 @@ get_pool(sr_session_ctx_t* session, const char *xpath) {
 }
 
 string
-get_pools(sr_session_ctx_t* session, const char *xpath) {
+get_pools(sr_session_ctx_t* session, const char *xpath, int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* pools;
     size_t pools_cnt = 32;
-
 
     string name = string(xpath) + "/pools/*";
     cout << "Retrieving pools for subnet " << xpath << ", xpath=" << name << endl;
@@ -124,28 +191,25 @@ get_pools(sr_session_ctx_t* session, const char *xpath) {
     if (rc == SR_ERR_OK) {
         cout << "Retrieved " << pools_cnt << " pools." << endl;
 
-        tmp << "            \"pools\": [ " << endl;
+        tmp << tabs(indent) << "\"pools\": [ " << endl;
 
         for (int i = 0; i < pools_cnt; i++) {
             if (i) {
-                tmp << ",";
+                tmp << tabs(indent) << ",";
             }
-            tmp << get_pool(session, pools[i].xpath);
+            tmp << get_pool(session, pools[i].xpath, indent + 1);
         }
 
-        tmp << "            ]" << endl;
+        tmp << tabs(indent) << "]" << endl;
         sr_free_values(pools, pools_cnt);
-
     }
-
-    cout << "#### get_pools=" << tmp.str() << endl;
 
     return tmp.str();
 }
 
 
 string
-get_subnet(sr_session_ctx_t* session, const char *xpath) {
+get_subnet(sr_session_ctx_t* session, const char *xpath, int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* value = NULL;
@@ -154,17 +218,17 @@ get_subnet(sr_session_ctx_t* session, const char *xpath) {
 
     string name = string(xpath) + "/subnet";
 
-    tmp << "        { " << endl;
+    tmp << tabs(indent) << "{" << endl;
 
     rc = sr_get_item(session, name.c_str(), &value);
     if (rc == SR_ERR_OK) {
-        tmp << "        \"subnet\": \"" << value->data.string_val << "\"," << endl;
+        tmp << tabs(indent+1) << "\"subnet\": \"" << value->data.string_val << "\"," << endl;
 
         sr_free_values(value, 1);
     }
 
-    tmp << get_pools(session, xpath);
-    tmp << "        }" << endl;
+    tmp << get_pools(session, xpath, indent + 1);
+    tmp << tabs(indent) << "}" << endl;
 
     return tmp.str();
 }
@@ -256,9 +320,9 @@ retrieve_current_config(sr_session_ctx_t *session)
         for (int i = 0; i < subnets_cnt; i++) {
 
             if (i) {
-                s << "," << endl;
+                s << tabs(2) << "," << endl;
             }
-            string subnet_txt = get_subnet(session, subnets[i].xpath);
+            string subnet_txt = get_subnet(session, subnets[i].xpath, 2);
             s << subnet_txt;
         }
         s << "    ]" << endl;
@@ -274,7 +338,7 @@ retrieve_current_config(sr_session_ctx_t *session)
     fs.close();
 
     string cmd = KEA_CONTROL_CLIENT + " " + KEA_CONTROL_SOCKET + " " + CFG_TEMP_FILE;
-    
+
     system (cmd.c_str());
 
     remove(CFG_TEMP_FILE.c_str());
