@@ -5,7 +5,7 @@ include_directories("/usr/local/include")
 link_directories("/usr/local/lib")
 
 # plugin-kea
-add_library(plugin-kea SHARED plugin-kea.cc)
+add_library(plugin-kea SHARED plugin-kea.cc yang-kea.cc yang-kea.h)
 target_link_libraries(plugin-kea sysrepo)
 set(CMAKE_C_FLAGS "-g -O0")
 
