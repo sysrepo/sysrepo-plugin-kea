@@ -100,7 +100,7 @@ SysrepoKea::valueToText(sr_val_t *value, bool xpath, bool type)
             /* do not print */
             break;
         case SR_STRING_T:
-            tmp << value->data.string_val;
+            tmp << "\"" << value->data.string_val << "\"";
             break;
         case SR_BOOL_T:
             tmp << value->data.bool_val ? "true" : "false";
@@ -135,7 +135,7 @@ SysrepoKea::valueToText(sr_val_t *value, bool xpath, bool type)
 }
 
 string
-SysrepoKea::get_pool(const char *xpath,int indent) {
+SysrepoKea::getPool(const char *xpath,int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* value = NULL;
@@ -153,7 +153,7 @@ SysrepoKea::get_pool(const char *xpath,int indent) {
 }
 
 string
-SysrepoKea::get_pools(const char *xpath, int indent) {
+SysrepoKea::getPools(const char *xpath, int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* pools;
@@ -173,7 +173,7 @@ SysrepoKea::get_pools(const char *xpath, int indent) {
             if (i) {
                 tmp << tabs(indent) << ",";
             }
-            tmp << get_pool(pools[i].xpath, indent + 1);
+            tmp << getPool(pools[i].xpath, indent + 1);
         }
 
         tmp << tabs(indent) << "]" << endl;
@@ -185,7 +185,7 @@ SysrepoKea::get_pools(const char *xpath, int indent) {
 
 
 string
-SysrepoKea::get_subnet(const char *xpath, int indent) {
+SysrepoKea::getSubnet(const char *xpath, int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* value = NULL;
@@ -204,7 +204,7 @@ SysrepoKea::get_subnet(const char *xpath, int indent) {
         sr_free_values(value, 1);
     }
 
-    tmp << get_pools(xpath, indent + 1);
+    tmp << getPools(xpath, indent + 1);
     tmp << tabs(indent) << "}" << endl;
 
     return tmp.str();
@@ -214,9 +214,13 @@ std::string
 SysrepoKea::getValue(const std::string& xpath) {
     int rc;
     sr_val_t* value = NULL;
-    rc = sr_get_item(session_, xpath.c_str(), &value);
+
+    string path = model_name_ + xpath;
+
+    rc = sr_get_item(session_, path.c_str(), &value);
     if (rc != SR_ERR_OK) {
         cerr << "sr_get_item() for xpath=" << xpath << " failed" << endl;
+        /// @todo: throw here
         return "";
     }
 
@@ -227,9 +231,13 @@ SysrepoKea::getValue(const std::string& xpath) {
 
 std::string
 SysrepoKea::getFormattedValue(const std::string& xpath,
-                              const std::string& json_name, int indent) {
+                              const std::string& json_name, int indent,
+                              bool comma) {
     stringstream tmp;
     tmp << tabs(indent) << "\"" << json_name << "\": " << getValue(xpath);
+    if (comma) {
+        tmp << ",";
+    }
     return (tmp.str());
 }
 
@@ -255,21 +263,11 @@ SysrepoKea::getConfig() {
 
     s << "{" << endl << "\"Dhcp6\": {" << endl;
 
-    rc = sr_get_items(session_, "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/*",
-                      &values, &count);
-    if (rc == SR_ERR_OK) {
-        s << tabs(1) << "\"control-socket\": {" << endl;
-        for (size_t i = 0; i < count; ++i) {
-            if (std::string(values[i].xpath) == "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/socket-type") {
-                s << tabs(2) << "\"socket-type\": \"" << values[i].data.string_val << "\"," << endl;
-            }
-            if (std::string(values[i].xpath) == "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/socket-name") {
-                s << tabs(2) << "\"socket-name\": \"" << values[i].data.string_val << "\"" << endl;
-            }
-        }
-        s << tabs(1) << "}," << endl;
-        sr_free_values(values, count);
-    }
+    // Control socket parameters
+    s << tabs(1) << "\"control-socket\": {" << endl;
+    s << getFormattedValue("serv-attributes/control-socket/socket-type", "socket-type", 2, true) << endl;
+    s << getFormattedValue("serv-attributes/control-socket/socket-name", "socket-type", 2, false) << endl;
+    s << tabs(1) << "}," << endl;
 
     /// @todo: There may be multiple interfaces specified, need to iterate through all of them, not just pick first.
     sr_val_t* value = NULL;
@@ -284,31 +282,11 @@ SysrepoKea::getConfig() {
 
     }
 
-    s << getFormattedValue("serv-attributes/renew-timer", "renew-timer", 1) << endl;
-
-    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/renew-timer", &value);
-    if (rc == SR_ERR_OK) {
-        s << tabs(1) << "\"renew-timer\":" << value->data.uint32_val << "," << std::endl;
-        sr_free_values(value, 1);
-    }
-
-    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/rebind-timer", &value);
-    if (rc == SR_ERR_OK) {
-        s << tabs(1) << "\"rebind-timer\":" << value->data.uint32_val << "," << std::endl;;
-        sr_free_values(value, 1);
-    }
-
-    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/preferred-lifetime", &value);
-    if (rc == SR_ERR_OK) {
-        s << tabs(1) << "\"preferred-lifetime\":" << value->data.uint32_val << "," << std::endl;;
-        sr_free_values(value, 1);
-    }
-
-    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/valid-lifetime", &value);
-    if (rc == SR_ERR_OK) {
-        s << tabs(1) << "\"valid-lifetime\":" << value->data.uint32_val << ", " << std::endl;;
-        sr_free_values(value, 1);
-    }
+    // Timers
+    s << getFormattedValue("serv-attributes/renew-timer", "renew-timer", 1, true) << endl;
+    s << getFormattedValue("serv-attributes/rebind-timer", "rebind-timer", 1, true) << endl;
+    s << getFormattedValue("serv-attributes/preferred-lifetime", "preferred-lifetime", 1, true) << endl;
+    s << getFormattedValue("serv-attributes/valid-lifetime", "valid-lifetime", 1, true) << endl;
 
     sr_val_t* subnets;
     size_t subnets_cnt = 32;
@@ -322,7 +300,7 @@ SysrepoKea::getConfig() {
             if (i) {
                 s << tabs(2) << "," << endl;
             }
-            string subnet_txt = get_subnet(subnets[i].xpath, 2);
+            string subnet_txt = getSubnet(subnets[i].xpath, 2);
             s << subnet_txt;
         }
         s << "    ]" << endl;

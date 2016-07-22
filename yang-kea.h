@@ -28,14 +28,24 @@ std::string tabs(int level);
 
 class SysrepoKea {
 public:
+    /// Specifies the default value of a model.
     const static char* DEFAULT_MODEL_NAME;
 
+    /// @brief Constructor
+    ///
+    /// @param session a Sysrepo session to be used.
     SysrepoKea(sr_session_ctx_t* session);
 
+    /// @brief Returns the model name.
     std::string getModelName() {
         return (model_name_);
     }
 
+    /// @brief Sets the model name
+    ///
+    /// If not used, the DEFAULT_MODEL_NAME is used.
+    ///
+    /// @param name name of the model to be used.
     void setModelName(const std::string& name) {
         model_name_ = name;
     }
@@ -57,24 +67,56 @@ public:
     valueToText(sr_val_t *value, bool xpath = false,
                 bool type = false);
 
+    /// @brief Retrieves config from Sysrepo and generates Kea config
+    ///        in JSON format.
+    ///
+    /// @param returns Kea config in JSON format.
     std::string getConfig();
 
 private:
-    std::string
-    get_pool(const char *xpath,int indent);
+    /// @brief Returns a pool specified by xpath as JSON text
+    ///
+    /// @param xpath XPath to the pool to be returned
+    /// @param indent indentation level
+    ///
+    /// @return string with specified pool as JSON text
+    std::string getPool(const char *xpath, int indent);
 
-    std::string
-    get_subnet(const char *xpath, int indent);
+    /// @brief Returns array of pools specified by xpath as JSON text
+    ///
+    /// @param xpath XPath to the pools list to be returned
+    /// @param indent indentation level
+    ///
+    /// @return string with specified pools array as JSON text
+    ///
+    std::string getPools(const char *xpath, int indent);
 
-    std::string
-    get_pools(const char *xpath, int indent);
+    /// @brief Returns a Subnet specified by xpath as JSON text
+    ///
+    /// @param xpath XPath to the subnet to be returned
+    /// @param indent indentation level
+    ///
+    /// @return string of JSON text
+    std::string getSubnet(const char *xpath, int indent);
 
-    std::string
-    getValue(const std::string& xpath);
+    /// @brief Returns a value specified by xpath as JSON text
+    ///
+    /// @param xpath XPath to the value to be returned
+    ///
+    /// @return string with specified element as JSON text
+    std::string getValue(const std::string& xpath);
 
-    std::string
-    getFormattedValue(const std::string& xpath,
-                      const std::string& json_name, int indent);
+    /// @brief Returns a formatted value of element specified by xpath as JSON text
+    ///
+    /// @param xpath XPath to the element to be returned
+    /// @param json_name Name of the JSON parameter to be produced
+    /// @param indent indentation level
+    /// @param comma whether the JSON structure should end with a comma
+    ///
+    /// @return string with specified element as JSON text
+    std::string getFormattedValue(const std::string& xpath,
+                                  const std::string& json_name, int indent,
+                                  bool comma = true);
 
     std::string model_name_; ///< Model name (usually /ietf-kea-dhcpv6:server/)
 
