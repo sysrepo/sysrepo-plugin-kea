@@ -31,9 +31,9 @@ const string CFG_TEMP_FILE = "/tmp/kea-plugin-gen-cfg.json";
 static void
 retrieve_current_config(sr_session_ctx_t *session)
 {
-    SysrepoKea interface;
+    SysrepoKea interface(session);
 
-    string json = interface.getConfig(session);
+    string json = interface.getConfig();
 
     std::ofstream fs;
     fs.open(CFG_TEMP_FILE.c_str(), std::ofstream::out);

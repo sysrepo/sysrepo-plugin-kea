@@ -15,6 +15,8 @@
 #include <sstream>
 #include <iostream>
 
+const char* SysrepoKea::DEFAULT_MODEL_NAME = "/ietf-kea-dhcpv6:server/";
+
 using namespace std;
 
 std::string
@@ -25,6 +27,10 @@ tabs(int level) {
         tmp << indent;
     }
     return (tmp.str());
+}
+
+SysrepoKea::SysrepoKea(sr_session_ctx_t* session)
+    :model_name_(DEFAULT_MODEL_NAME), session_(session) {
 }
 
 std::string
@@ -129,14 +135,14 @@ SysrepoKea::valueToText(sr_val_t *value, bool xpath, bool type)
 }
 
 string
-SysrepoKea::get_pool(sr_session_ctx_t* session, const char *xpath,int indent) {
+SysrepoKea::get_pool(const char *xpath,int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* value = NULL;
 
     string name = string(xpath) + "/pool-prefix";
 
-    rc = sr_get_item(session, name.c_str(), &value);
+    rc = sr_get_item(session_, name.c_str(), &value);
     if (rc == SR_ERR_OK) {
         tmp << tabs(indent) << "{ \"pool\": \""
             << value->data.string_val << "\" }" << endl;
@@ -147,7 +153,7 @@ SysrepoKea::get_pool(sr_session_ctx_t* session, const char *xpath,int indent) {
 }
 
 string
-SysrepoKea::get_pools(sr_session_ctx_t* session, const char *xpath, int indent) {
+SysrepoKea::get_pools(const char *xpath, int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* pools;
@@ -157,7 +163,7 @@ SysrepoKea::get_pools(sr_session_ctx_t* session, const char *xpath, int indent) 
     cout << "Retrieving pools for subnet " << xpath << ", xpath="
          << name << endl;
 
-    rc = sr_get_items(session, name.c_str(), &pools, &pools_cnt);
+    rc = sr_get_items(session_, name.c_str(), &pools, &pools_cnt);
     if (rc == SR_ERR_OK) {
         cout << "Retrieved " << pools_cnt << " pools." << endl;
 
@@ -167,7 +173,7 @@ SysrepoKea::get_pools(sr_session_ctx_t* session, const char *xpath, int indent) 
             if (i) {
                 tmp << tabs(indent) << ",";
             }
-            tmp << get_pool(session, pools[i].xpath, indent + 1);
+            tmp << get_pool(pools[i].xpath, indent + 1);
         }
 
         tmp << tabs(indent) << "]" << endl;
@@ -179,7 +185,7 @@ SysrepoKea::get_pools(sr_session_ctx_t* session, const char *xpath, int indent) 
 
 
 string
-SysrepoKea::get_subnet(sr_session_ctx_t* session, const char *xpath, int indent) {
+SysrepoKea::get_subnet(const char *xpath, int indent) {
     stringstream tmp;
     int rc = SR_ERR_OK;
     sr_val_t* value = NULL;
@@ -190,21 +196,46 @@ SysrepoKea::get_subnet(sr_session_ctx_t* session, const char *xpath, int indent)
 
     tmp << tabs(indent) << "{" << endl;
 
-    rc = sr_get_item(session, name.c_str(), &value);
+    rc = sr_get_item(session_, name.c_str(), &value);
     if (rc == SR_ERR_OK) {
-        tmp << tabs(indent+1) << "\"subnet\": \"" << value->data.string_val << "\"," << endl;
+        tmp << tabs(indent+1) << "\"subnet\": \"" << value->data.string_val
+            << "\"," << endl;
 
         sr_free_values(value, 1);
     }
 
-    tmp << get_pools(session, xpath, indent + 1);
+    tmp << get_pools(xpath, indent + 1);
     tmp << tabs(indent) << "}" << endl;
 
     return tmp.str();
 }
 
 std::string
-SysrepoKea::getConfig(sr_session_ctx_t * session) {
+SysrepoKea::getValue(const std::string& xpath) {
+    int rc;
+    sr_val_t* value = NULL;
+    rc = sr_get_item(session_, xpath.c_str(), &value);
+    if (rc != SR_ERR_OK) {
+        cerr << "sr_get_item() for xpath=" << xpath << " failed" << endl;
+        return "";
+    }
+
+    string v = valueToText(value, false, false);
+    sr_free_values(value, 1);
+    return (v);
+}
+
+std::string
+SysrepoKea::getFormattedValue(const std::string& xpath,
+                              const std::string& json_name, int indent) {
+    stringstream tmp;
+    tmp << tabs(indent) << "\"" << json_name << "\": " << getValue(xpath);
+    return (tmp.str());
+}
+
+
+std::string
+SysrepoKea::getConfig() {
 
     sr_val_t *all_values = NULL;
     sr_val_t *values = NULL;
@@ -212,10 +243,9 @@ SysrepoKea::getConfig(sr_session_ctx_t * session) {
     size_t all_count = 0;
     int rc = SR_ERR_OK;
 
-
     /* Going through all of the nodes */
-    sr_session_refresh(session);
-    rc = sr_get_items(session, "/ietf-kea-dhcpv6:server//*", &all_values, &all_count);
+    sr_session_refresh(session_);
+    rc = sr_get_items(session_, "/ietf-kea-dhcpv6:server//*", &all_values, &all_count);
     if (SR_ERR_OK != rc) {
         cerr << "Error by sr_get_items: %s" << sr_strerror(rc);
         return ("");
@@ -225,7 +255,8 @@ SysrepoKea::getConfig(sr_session_ctx_t * session) {
 
     s << "{" << endl << "\"Dhcp6\": {" << endl;
 
-    rc = sr_get_items(session, "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/*", &values, &count);
+    rc = sr_get_items(session_, "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/*",
+                      &values, &count);
     if (rc == SR_ERR_OK) {
         s << tabs(1) << "\"control-socket\": {" << endl;
         for (size_t i = 0; i < count; ++i) {
@@ -242,7 +273,7 @@ SysrepoKea::getConfig(sr_session_ctx_t * session) {
 
     /// @todo: There may be multiple interfaces specified, need to iterate through all of them, not just pick first.
     sr_val_t* value = NULL;
-    rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/interfaces-config/interfaces", &value);
+    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/interfaces-config/interfaces", &value);
     if (rc == SR_ERR_OK) {
         s << tabs(1) << "\"interfaces-config\": { " << std::endl;;
         s << tabs(2) << "\"interfaces\": [ \"" << std::endl;;
@@ -253,25 +284,27 @@ SysrepoKea::getConfig(sr_session_ctx_t * session) {
 
     }
 
-    rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/renew-timer", &value);
+    s << getFormattedValue("serv-attributes/renew-timer", "renew-timer", 1) << endl;
+
+    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/renew-timer", &value);
     if (rc == SR_ERR_OK) {
         s << tabs(1) << "\"renew-timer\":" << value->data.uint32_val << "," << std::endl;
         sr_free_values(value, 1);
     }
 
-    rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/rebind-timer", &value);
+    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/rebind-timer", &value);
     if (rc == SR_ERR_OK) {
         s << tabs(1) << "\"rebind-timer\":" << value->data.uint32_val << "," << std::endl;;
         sr_free_values(value, 1);
     }
 
-    rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/preferred-lifetime", &value);
+    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/preferred-lifetime", &value);
     if (rc == SR_ERR_OK) {
         s << tabs(1) << "\"preferred-lifetime\":" << value->data.uint32_val << "," << std::endl;;
         sr_free_values(value, 1);
     }
 
-    rc = sr_get_item(session, "/ietf-kea-dhcpv6:server/serv-attributes/valid-lifetime", &value);
+    rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/valid-lifetime", &value);
     if (rc == SR_ERR_OK) {
         s << tabs(1) << "\"valid-lifetime\":" << value->data.uint32_val << ", " << std::endl;;
         sr_free_values(value, 1);
@@ -279,7 +312,7 @@ SysrepoKea::getConfig(sr_session_ctx_t * session) {
 
     sr_val_t* subnets;
     size_t subnets_cnt = 32;
-    rc = sr_get_items(session, "/ietf-kea-dhcpv6:server/network-ranges/subnet6",
+    rc = sr_get_items(session_, "/ietf-kea-dhcpv6:server/network-ranges/subnet6",
                       &subnets, &subnets_cnt);
     if (rc == SR_ERR_OK) {
         cout << "#### Received " << subnets_cnt << " subnet[s]" << endl;
@@ -289,7 +322,7 @@ SysrepoKea::getConfig(sr_session_ctx_t * session) {
             if (i) {
                 s << tabs(2) << "," << endl;
             }
-            string subnet_txt = get_subnet(session, subnets[i].xpath, 2);
+            string subnet_txt = get_subnet(subnets[i].xpath, 2);
             s << subnet_txt;
         }
         s << "    ]" << endl;

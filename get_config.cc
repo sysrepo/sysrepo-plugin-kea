@@ -9,7 +9,7 @@ int main(int argc, const char *argv[]) {
     int rc = SR_ERR_OK;
     sr_conn_ctx_t *conn = NULL;
     sr_session_ctx_t *sess = NULL;
-    
+
     rc = sr_connect("pull kea config", SR_CONN_DEFAULT, &conn);
     if (rc != SR_ERR_OK) {
         cerr << "Failed to create session" << endl;
@@ -22,9 +22,9 @@ int main(int argc, const char *argv[]) {
         return (EXIT_FAILURE);
     }
 
-    SysrepoKea yang;
+    SysrepoKea yang(sess);
 
-    std::string json = yang.getConfig(sess);
+    std::string json = yang.getConfig();
 
     cout << "Received JSON config is " << json.length() << " bytes long."
          << endl;
@@ -36,7 +36,7 @@ int main(int argc, const char *argv[]) {
         cerr << "Failed to start session" << endl;
         status = EXIT_FAILURE;
     }
-    
+
     sr_disconnect(conn);
 
     return (status);

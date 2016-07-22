@@ -28,6 +28,18 @@ std::string tabs(int level);
 
 class SysrepoKea {
 public:
+    const static char* DEFAULT_MODEL_NAME;
+
+    SysrepoKea(sr_session_ctx_t* session);
+
+    std::string getModelName() {
+        return (model_name_);
+    }
+
+    void setModelName(const std::string& name) {
+        model_name_ = name;
+    }
+
     /// @brief converts sr_type_t to textual form
     ///
     /// @param type type to be converted
@@ -45,18 +57,30 @@ public:
     valueToText(sr_val_t *value, bool xpath = false,
                 bool type = false);
 
-    std::string
-    getConfig(sr_session_ctx_t* session);
+    std::string getConfig();
 
 private:
     std::string
-    get_pool(sr_session_ctx_t* session, const char *xpath,int indent);
+    get_pool(const char *xpath,int indent);
 
     std::string
-    get_subnet(sr_session_ctx_t* session, const char *xpath, int indent);
+    get_subnet(const char *xpath, int indent);
 
     std::string
-    get_pools(sr_session_ctx_t* session, const char *xpath, int indent);
+    get_pools(const char *xpath, int indent);
+
+    std::string
+    getValue(const std::string& xpath);
+
+    std::string
+    getFormattedValue(const std::string& xpath,
+                      const std::string& json_name, int indent);
+
+    std::string model_name_; ///< Model name (usually /ietf-kea-dhcpv6:server/)
+
+    /// Sysrepo session (must be valid for the whole time this
+    /// object's lifetime)
+    sr_session_ctx_t* session_;
 };
 
 #endif /* YANG_KEA_H */
