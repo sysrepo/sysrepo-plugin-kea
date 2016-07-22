@@ -241,6 +241,32 @@ SysrepoKea::getFormattedValue(const std::string& xpath,
     return (tmp.str());
 }
 
+std::string
+SysrepoKea::getSubnets(const std::string& xpath, int indent) {
+    stringstream s;
+    sr_val_t* subnets = NULL;
+    size_t subnets_cnt = 9999;
+    int rc = SR_ERR_OK;
+    string path = model_name_ + xpath;
+    rc = sr_get_items(session_, path.c_str(), &subnets, &subnets_cnt);
+    if (rc == SR_ERR_OK) {
+        s << tabs(indent) << "\"subnet6\": [" << endl;
+        for (int i = 0; i < subnets_cnt; i++) {
+
+            if (i) {
+                s << tabs(indent + 1) << "," << endl;
+            }
+            string subnet_txt = getSubnet(subnets[i].xpath, indent + 1);
+            s << subnet_txt;
+        }
+        s << tabs(indent) << "]" << endl;
+
+        sr_free_values(subnets, subnets_cnt);
+    }
+
+    return (s.str());
+}
+
 
 std::string
 SysrepoKea::getConfig() {
@@ -258,6 +284,7 @@ SysrepoKea::getConfig() {
         cerr << "Error by sr_get_items: %s" << sr_strerror(rc);
         return ("");
     }
+    sr_free_values(all_values, all_count);
 
     std::ostringstream s;
 
@@ -282,35 +309,19 @@ SysrepoKea::getConfig() {
 
     }
 
+    // Lease database
+    /// @todo: Lease database does not seem to be configurable using YANG model.
+
     // Timers
     s << getFormattedValue("serv-attributes/renew-timer", "renew-timer", 1, true) << endl;
     s << getFormattedValue("serv-attributes/rebind-timer", "rebind-timer", 1, true) << endl;
     s << getFormattedValue("serv-attributes/preferred-lifetime", "preferred-lifetime", 1, true) << endl;
     s << getFormattedValue("serv-attributes/valid-lifetime", "valid-lifetime", 1, true) << endl;
 
-    sr_val_t* subnets;
-    size_t subnets_cnt = 32;
-    rc = sr_get_items(session_, "/ietf-kea-dhcpv6:server/network-ranges/subnet6",
-                      &subnets, &subnets_cnt);
-    if (rc == SR_ERR_OK) {
-        cout << "#### Received " << subnets_cnt << " subnet[s]" << endl;
-        s << "    \"subnet6\": [" << endl;
-        for (int i = 0; i < subnets_cnt; i++) {
+    // Generate all subnets
+    s << getSubnets("network-ranges/subnet6", 1) << endl;
 
-            if (i) {
-                s << tabs(2) << "," << endl;
-            }
-            string subnet_txt = getSubnet(subnets[i].xpath, 2);
-            s << subnet_txt;
-        }
-        s << "    ]" << endl;
-
-        sr_free_values(subnets, subnets_cnt);
-    }
-
-    s << "}" << std::endl << "}" << std::endl;
-
-    sr_free_values(all_values, all_count);
+    s << "}" << endl << "}" << std::endl;
 
     return (s.str());
 }

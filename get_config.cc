@@ -33,7 +33,7 @@ int main(int argc, const char *argv[]) {
     int status = EXIT_SUCCESS;
     rc = sr_session_stop(sess);
     if (rc != SR_ERR_OK) {
-        cerr << "Failed to start session" << endl;
+        cerr << "Failed to stop session" << endl;
         status = EXIT_FAILURE;
     }
 

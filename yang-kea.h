@@ -88,7 +88,6 @@ private:
     /// @param indent indentation level
     ///
     /// @return string with specified pools array as JSON text
-    ///
     std::string getPools(const char *xpath, int indent);
 
     /// @brief Returns a Subnet specified by xpath as JSON text
@@ -98,6 +97,15 @@ private:
     ///
     /// @return string of JSON text
     std::string getSubnet(const char *xpath, int indent);
+
+
+    /// @brief Returns array of subnets specified by xpath as JSON text
+    ///
+    /// @param xpath XPath to the subnets list to be returned
+    /// @param indent indentation level
+    ///
+    /// @return string with specified subnets array as JSON text
+    std::string getSubnets(const std::string& xpath, int indent);
 
     /// @brief Returns a value specified by xpath as JSON text
     ///
