@@ -1,8 +1,10 @@
+# Kea with YANG interface using Sysrepo plugin
+
 This file contains instruction how to set up an environment that
 allows doing experiments with Sysrepo plugin that is able to receive
 configuration from Sysrepo and send it to Kea.
 
-= Install and setup Kea =
+## Install and setup Kea
 
 1. Download experimental Kea code that has set-config method
 implemented.
@@ -32,7 +34,7 @@ sysrepo-plugin-kea.
 cd src/bin/dhcp6
 ./kea-dhcp6 -c your-kea-config-file.json
 
-= Install and setup Sysrepo =
+## Install and setup Sysrepo
 
 1. Install sysrepo
 Refer to sysrepo documentation for details.
@@ -92,7 +94,7 @@ set-config command:
 
 2016-07-17 15:36:56.699 INFO  [kea-dhcp6.commands/14236] COMMAND_RECEIVED Received command 'set-config'
 
-= Extra steps =
+## Extra steps
 
 The following steps are not needed to have the whole setup
 operational. They're useful to conduct certain additional
@@ -109,6 +111,7 @@ to Kea.
 sysrepocfg --export=/tmp/backup.json --format=json --datastore=startup  ietf-kea-dhcpv6
 
 ---------------------
+
 Tools that may be useful to look at:
 Yang Explorer - GUI tool for browsing and editing YANG,
 requires flash and it's tricky to set up.
