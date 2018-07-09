@@ -3,7 +3,7 @@
 /// @brief plugin for sysrepo datastore for ISC Kea
 ///
 ///  @copyright
-///  Copyright (C) 2016 Internet Systems Consortium, Inc. ("ISC")
+///  Copyright (C) 2016-2018 Internet Systems Consortium, Inc. ("ISC")
 ///
 ///  This Source Code Form is subject to the terms of the Mozilla Public
 ///  License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include "plugin-kea.h"
 #include "yang-kea.h"
 
 extern "C" {
@@ -23,11 +24,11 @@ extern "C" {
 
 using namespace std;
 
-const string KEA_CONTROL_SOCKET = "/tmp/kea-control-channel";
-const string KEA_CONTROL_CLIENT = "~/devel/sysrepo-plugin-kea/kea-client/ctrl-client-cli";
+const string KEA_CONTROL_SOCKET = "/tmp/kea-dhcp6-ctrl.sock";
+const string KEA_CONTROL_CLIENT = CLIENT_DIR "/ctrl-channel-cli";
 const string CFG_TEMP_FILE = "/tmp/kea-plugin-gen-cfg.json";
 
-/* retrieves & prints current turing-machine configuration */
+/* retrieves & prints current Kea configuration */
 static void
 retrieve_current_config(sr_session_ctx_t *session)
 {
@@ -44,7 +45,7 @@ retrieve_current_config(sr_session_ctx_t *session)
 
     system (cmd.c_str());
 
-    remove(CFG_TEMP_FILE.c_str());
+    // remove(CFG_TEMP_FILE.c_str());
 
     std::cout << json << std::endl;
 
@@ -66,10 +67,10 @@ sr_plugin_init_cb(sr_session_ctx_t *session, void **private_ctx)
     sr_subscription_ctx_t *subscription = NULL;
     int rc = SR_ERR_OK;
 
-    //rc = sr_module_change_subscribe(session, "ietf-kea-dhcpv6", module_change_cb, NULL,
-    //                              0, SR_SUBSCR_DEFAULT, &subscription);
-    rc = sr_subtree_change_subscribe(session, "/ietf-kea-dhcpv6:server/*", module_change_cb, NULL,
-                                    0, SR_SUBSCR_DEFAULT, &subscription);
+    rc = sr_module_change_subscribe(session, "ietf-kea-dhcpv6", module_change_cb, NULL,
+                                  0, SR_SUBSCR_DEFAULT, &subscription);
+    //rc = sr_subtree_change_subscribe(session, "/ietf-kea-dhcpv6:server/*", module_change_cb, NULL,
+    //                            0, SR_SUBSCR_DEFAULT, &subscription);
     if (SR_ERR_OK != rc) {
         goto error;
     }

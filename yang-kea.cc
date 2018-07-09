@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Internet Systems Consortium, Inc. ("ISC")
+// Copyright (C) 2016-2018 Internet Systems Consortium, Inc. ("ISC")
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,10 +19,10 @@ const char* SysrepoKea::DEFAULT_MODEL_NAME = "/ietf-kea-dhcpv6:server/";
 
 using namespace std;
 
-std::string
+string
 tabs(int level) {
     stringstream tmp;
-    const std::string indent("    ");
+    const string indent("    ");
     for (int i=0; i < level; i++) {
         tmp << indent;
     }
@@ -33,12 +33,12 @@ SysrepoKea::SysrepoKea(sr_session_ctx_t* session)
     :model_name_(DEFAULT_MODEL_NAME), session_(session) {
 }
 
-std::string
+string
 SysrepoKea::srTypeToText(sr_type_t type)
 {
     typedef struct {
         sr_type_t type;
-        const std::string name;
+        const string name;
     } sr_types_text;
 
     sr_types_text names[] = {
@@ -80,7 +80,7 @@ SysrepoKea::srTypeToText(sr_type_t type)
     return "unknown";
 }
 
-std::string
+string
 SysrepoKea::valueToText(sr_val_t *value, bool xpath, bool type)
 {
     stringstream tmp;
@@ -105,18 +105,18 @@ SysrepoKea::valueToText(sr_val_t *value, bool xpath, bool type)
             tmp << "\"" << value->data.string_val << "\"";
             break;
         case SR_BOOL_T:
-            tmp << value->data.bool_val ? "true" : "false";
+            tmp << (value->data.bool_val ? "true" : "false");
             break;
         case SR_UINT8_T:
             // Converted to uint16, because otherwise it will be printed as
             // a single character.
-            tmp << static_cast<uint16_t>(value->xpath, value->data.uint8_val);
+            tmp << static_cast<uint16_t>(value->data.uint8_val);
             break;
         case SR_UINT16_T:
-            tmp << static_cast<uint16_t>(value->xpath, value->data.uint16_val);
+            tmp << static_cast<uint16_t>(value->data.uint16_val);
             break;
         case SR_UINT32_T:
-            tmp << static_cast<uint32_t>(value->xpath, value->data.uint16_val);
+            tmp << static_cast<uint32_t>(value->data.uint16_val);
             break;
         case SR_IDENTITYREF_T:
             tmp << value->data.identityref_val;
@@ -212,8 +212,8 @@ SysrepoKea::getSubnet(const char *xpath, int indent) {
     return tmp.str();
 }
 
-std::string
-SysrepoKea::getValue(const std::string& xpath) {
+string
+SysrepoKea::getValue(const string& xpath) {
     int rc;
     sr_val_t* value = NULL;
 
@@ -231,9 +231,9 @@ SysrepoKea::getValue(const std::string& xpath) {
     return (v);
 }
 
-std::string
-SysrepoKea::getFormattedValue(const std::string& xpath,
-                              const std::string& json_name, int indent,
+string
+SysrepoKea::getFormattedValue(const string& xpath,
+                              const string& json_name, int indent,
                               bool comma) {
     stringstream tmp;
     tmp << tabs(indent) << "\"" << json_name << "\": " << getValue(xpath);
@@ -243,8 +243,8 @@ SysrepoKea::getFormattedValue(const std::string& xpath,
     return (tmp.str());
 }
 
-std::string
-SysrepoKea::getSubnets(const std::string& xpath, int indent) {
+string
+SysrepoKea::getSubnets(const string& xpath, int indent) {
     stringstream s;
     sr_val_t* subnets = NULL;
     size_t subnets_cnt = 9999;
@@ -270,7 +270,7 @@ SysrepoKea::getSubnets(const std::string& xpath, int indent) {
 }
 
 
-std::string
+string
 SysrepoKea::getConfig() {
 
     sr_val_t *all_values = NULL;
@@ -288,25 +288,25 @@ SysrepoKea::getConfig() {
     }
     sr_free_values(all_values, all_count);
 
-    std::ostringstream s;
+    ostringstream s;
 
     s << "{" << endl << "\"Dhcp6\": {" << endl;
 
     // Control socket parameters
     s << tabs(1) << "\"control-socket\": {" << endl;
     s << getFormattedValue("serv-attributes/control-socket/socket-type", "socket-type", 2, true) << endl;
-    s << getFormattedValue("serv-attributes/control-socket/socket-name", "socket-type", 2, false) << endl;
+    s << getFormattedValue("serv-attributes/control-socket/socket-name", "socket-name", 2, false) << endl;
     s << tabs(1) << "}," << endl;
 
     /// @todo: There may be multiple interfaces specified, need to iterate through all of them, not just pick first.
     sr_val_t* value = NULL;
     rc = sr_get_item(session_, "/ietf-kea-dhcpv6:server/serv-attributes/interfaces-config/interfaces", &value);
     if (rc == SR_ERR_OK) {
-        s << tabs(1) << "\"interfaces-config\": { " << std::endl;;
-        s << tabs(2) << "\"interfaces\": [ \"" << std::endl;;
-        s << tabs(2) << value->data.string_val << std::endl;
-        s << tabs(2) << "\" ]" << std::endl;
-        s << tabs(1) << "}," << std::endl;;
+        s << tabs(1) << "\"interfaces-config\": { " << endl;;
+        s << tabs(2) << "\"interfaces\": [ \"" << endl;;
+        s << tabs(2) << value->data.string_val << endl;
+        s << tabs(2) << "\" ]" << endl;
+        s << tabs(1) << "}," << endl;;
         sr_free_values(value, 1);
 
     }
@@ -314,16 +314,18 @@ SysrepoKea::getConfig() {
     // Lease database
     /// @todo: Lease database does not seem to be configurable using YANG model.
 
+    // Generate all subnets
+    string subnets = getSubnets("network-ranges/subnet6", 1);
+
     // Timers
     s << getFormattedValue("serv-attributes/renew-timer", "renew-timer", 1, true) << endl;
     s << getFormattedValue("serv-attributes/rebind-timer", "rebind-timer", 1, true) << endl;
     s << getFormattedValue("serv-attributes/preferred-lifetime", "preferred-lifetime", 1, true) << endl;
-    s << getFormattedValue("serv-attributes/valid-lifetime", "valid-lifetime", 1, true) << endl;
+    s << getFormattedValue("serv-attributes/valid-lifetime", "valid-lifetime", 1, !subnets.empty()) << endl;
 
-    // Generate all subnets
-    s << getSubnets("network-ranges/subnet6", 1) << endl;
+    s << subnets << endl;
 
-    s << "}" << endl << "}" << std::endl;
+    s << "}" << endl << "}" << endl;
 
     return (s.str());
 }

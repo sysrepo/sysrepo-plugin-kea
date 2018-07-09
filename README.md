@@ -26,7 +26,7 @@ have control socket defined. For example:
 ```json
       "control-socket": {
           "socket-type": "unix",
-          "socket-name": "/tmp/kea-control-channel"
+          "socket-name": "/tmp/kea-dhcp6-ctrl.sock"
       },
 ```
 
@@ -49,6 +49,7 @@ Refer to sysrepo documentation for details.
 See plugin-kea.c. Edit KEA_CONTROL_SOCKET to match whatever
 you configured in socket-name in step 2. Edit KEA_CONTROL_CLIENT
 to point to ctrl-client-cli binary.
+(obsolete: cmake should do this)
 
 3. Build sysrepo-plugin-kea
 ```bash

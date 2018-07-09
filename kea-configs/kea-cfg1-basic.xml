@@ -2,19 +2,19 @@
   <serv-attributes>
     <control-socket>
       <socket-type>unix</socket-type>
-      <socket-name>/tmp/kea-control-channel</socket-name>
+      <socket-name>/tmp/kea-dhcp6-ctrl.sock</socket-name>
     </control-socket>
     <renew-timer>1000</renew-timer>
     <rebind-timer>2000</rebind-timer>
     <preferred-lifetime>3000</preferred-lifetime>
     <valid-lifetime>4000</valid-lifetime>
     <interfaces-config>
-      <interfaces>enp0s8</interfaces>
+      <interfaces>eth0</interfaces>
     </interfaces-config>
   </serv-attributes>
   <network-ranges>
     <subnet6>
-      <subnet>2001:db8::/48</subnet>
+      <subnet>2001:db8::/32</subnet>
       <pools>
         <address-pool>
           <pool-id>1</pool-id>
