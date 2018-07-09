@@ -1,4 +1,4 @@
-// Copyright (C) 2015 Internet Systems Consortium, Inc. ("ISC")
+// Copyright (C) 2015-2018 Internet Systems Consortium, Inc. ("ISC")
 //
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,13 @@
 #include <unistd.h>
 
 /// Attempts to load a file into buffer and wrap it with
-/// set-config JSON syntax.
+/// config-set JSON syntax.
 /// @return 0 on failure, 1 on success
 int loadConfig(char* buf, size_t buflen, const char* filename) {
 
     const char* COMMAND_PREFIX =
         "{\n"
-        "    \"command\": \"set-config\",\n"
+        "    \"command\": \"config-set\",\n"
         "    \"arguments\": \n";
     const char* COMMAND_SUFFIX =
         "    \n"

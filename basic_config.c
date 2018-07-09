@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
    /* socket name */
    val.xpath = "/ietf-kea-dhcpv6:server/serv-attributes/control-socket/socket-name";
    val.type = SR_STRING_T;
-   val.data.string_val = "/tmp/";
+   val.data.string_val = "/tmp/kea-dhcp6-ctrl.sock";
 
    rc = sr_set_item(sess, val.xpath, &val, SR_EDIT_DEFAULT);
    CHECK_RC(rc, cleanup);

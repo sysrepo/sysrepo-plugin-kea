@@ -2,7 +2,7 @@
   <serv-attributes>
     <control-socket>
       <socket-type>unix</socket-type>
-      <socket-name>/tmp/</socket-name>
+      <socket-name>/tmp/kea-dhcp6-ctrl.sock</socket-name>
     </control-socket>
     <interfaces-config>
       <interfaces>eth0</interfaces>
