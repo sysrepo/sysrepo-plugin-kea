@@ -48,8 +48,8 @@ Refer to sysrepo documentation for details.
 2. Update paths
 See plugin-kea.c. Edit KEA_CONTROL_SOCKET to match whatever
 you configured in socket-name in step 2. Edit KEA_CONTROL_CLIENT
-to point to ctrl-client-cli binary. (obsolete: cmake should do this)
-3. Build client aka ctrl-channel-cli:
+to point to ctrl-client-cli binary. (obsolete: cmake should do this) 3.
+Build client aka ctrl-channel-cli:
 ``` bash
 cd kea-client
 make
