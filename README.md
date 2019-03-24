@@ -1,3 +1,24 @@
+
+# This plugin is obsolete.
+
+Kea 1.5 implemented YANG/NETCONF support with a stand-alone daemon
+called kea-netconf. It is an optional component that uses Sysrepo.
+
+To compile Kea with this, please download Kea 1.5 or later and
+compile it :
+
+```bash
+autreconf -i
+./configure --with-sysrepo=...
+make -jX
+sudo make install
+```
+
+There's a script in tools/sysrepo_config that may help you setting
+up paths to the Sysrepo project.
+
+To get the latest Kea sources, go to https://gitlab.isc.org/isc-projects/kea
+
 # Kea with YANG interface using Sysrepo plugin
 
 This file contains instruction how to set up an environment that
